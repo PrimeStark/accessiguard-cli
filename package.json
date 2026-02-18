@@ -1,0 +1,37 @@
+{
+  "name": "accessiguard",
+  "version": "1.0.0",
+  "description": "Scan any website for accessibility issues from your terminal",
+  "bin": {
+    "accessiguard": "./bin/accessiguard.js"
+  },
+  "scripts": {
+    "start": "node bin/accessiguard.js"
+  },
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "wcag",
+    "ada",
+    "compliance",
+    "scanner",
+    "cli"
+  ],
+  "author": "Zdenek Spacek <muqmuq@me.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PrimeStark/accessiguard-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/PrimeStark/accessiguard-cli/issues"
+  },
+  "homepage": "https://github.com/PrimeStark/accessiguard-cli#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ]
+}
