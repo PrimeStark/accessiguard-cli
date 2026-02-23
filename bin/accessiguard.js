@@ -315,6 +315,12 @@ function printPrettyReport(targetUrl, payload) {
     console.log(`  See full report for issue details.`);
   }
 
+  const moreIssues = Number(payload.moreIssues);
+  if (Number.isFinite(moreIssues) && moreIssues > 0) {
+    console.log('');
+    console.log(color(`  + ${moreIssues} more issue${moreIssues === 1 ? '' : 's'} — view full report for details + AI fix suggestions`, ANSI.yellow));
+  }
+
   console.log('');
   console.log(`  Full report: ${color(reportUrl, ANSI.cyan)}`);
   console.log(color(line, ANSI.gray));
