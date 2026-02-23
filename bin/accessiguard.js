@@ -37,7 +37,7 @@ function getVersion() {
 
 function printHelp() {
   const help = [
-    'accessiguard - Scan websites for accessibility issues',
+    'accessiguard - Scan websites for 39 WCAG accessibility issues',
     '',
     'Usage:',
     '  accessiguard scan <url> [options]',
@@ -131,9 +131,16 @@ function parseArgs(argv) {
 }
 
 function validateHttpUrl(input) {
+  let urlString = input;
+  
+  // Auto-prepend https:// if no protocol provided
+  if (!/^https?:\/\//i.test(urlString)) {
+    urlString = 'https://' + urlString;
+  }
+  
   let parsed;
   try {
-    parsed = new URL(input);
+    parsed = new URL(urlString);
   } catch {
     throw new Error(`Invalid URL: ${input}`);
   }
@@ -244,8 +251,15 @@ function resolveScore(payload) {
 }
 
 function resolveReportUrl(payload, targetUrl) {
+  // v2 API returns scanId + relative reportUrl
+  if (payload.scanId) {
+    return `https://accessiguard.app/scan/${payload.scanId}`;
+  }
   const explicit = payload.reportUrl || payload.report_url || payload.report;
   if (typeof explicit === 'string' && explicit.length > 0) {
+    if (explicit.startsWith('/')) {
+      return `https://accessiguard.app${explicit}`;
+    }
     return explicit;
   }
   return `https://accessiguard.app/scan?url=${encodeURIComponent(targetUrl)}`;
