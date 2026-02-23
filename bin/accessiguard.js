@@ -5,7 +5,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const API_URL = 'https://accessiguard.app/api/scan';
+const API_URL = 'https://www.accessiguard.app/api/scan';
 const EXIT_OK = 0;
 const EXIT_THRESHOLD_FAIL = 1;
 const EXIT_ERROR = 2;
@@ -37,7 +37,7 @@ function getVersion() {
 
 function printHelp() {
   const help = [
-    'accessiguard - Scan websites for accessibility issues',
+    'accessiguard - Scan websites for 39 WCAG accessibility issues',
     '',
     'Usage:',
     '  accessiguard scan <url> [options]',
@@ -131,9 +131,16 @@ function parseArgs(argv) {
 }
 
 function validateHttpUrl(input) {
+  let urlString = input;
+  
+  // Auto-prepend https:// if no protocol provided
+  if (!/^https?:\/\//i.test(urlString)) {
+    urlString = 'https://' + urlString;
+  }
+  
   let parsed;
   try {
-    parsed = new URL(input);
+    parsed = new URL(urlString);
   } catch {
     throw new Error(`Invalid URL: ${input}`);
   }
@@ -244,11 +251,27 @@ function resolveScore(payload) {
 }
 
 function resolveReportUrl(payload, targetUrl) {
+  // v2 API returns scanId + relative reportUrl
+  if (payload.scanId) {
+    return `https://www.accessiguard.app/scan/${payload.scanId}`;
+  }
   const explicit = payload.reportUrl || payload.report_url || payload.report;
   if (typeof explicit === 'string' && explicit.length > 0) {
+    if (explicit.startsWith('/')) {
+      return `https://www.accessiguard.app${explicit}`;
+    }
     return explicit;
   }
-  return `https://accessiguard.app/scan?url=${encodeURIComponent(targetUrl)}`;
+  return `https://www.accessiguard.app/scan?url=${encodeURIComponent(targetUrl)}`;
+}
+
+function resolveTotalIssues(violations, counts, payload) {
+  // v2 API response includes issueCount directly
+  const fromPayload = Number(payload.issueCount);
+  if (Number.isFinite(fromPayload) && fromPayload >= 0 && violations.length === 0) {
+    return Math.round(fromPayload);
+  }
+  return counts.critical + counts.serious + counts.moderate + counts.minor;
 }
 
 function printPrettyReport(targetUrl, payload) {
@@ -257,7 +280,7 @@ function printPrettyReport(targetUrl, payload) {
   const scoreLabel = getScoreLabel(score);
   const violations = normalizeViolations(payload);
   const counts = countBySeverity(violations, payload.counts);
-  const totalIssues = counts.critical + counts.serious + counts.moderate + counts.minor;
+  const totalIssues = resolveTotalIssues(violations, counts, payload);
   const top = pickTopIssues(violations, 3);
   const reportUrl = resolveReportUrl(payload, targetUrl);
   const line = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
@@ -272,10 +295,14 @@ function printPrettyReport(targetUrl, payload) {
   );
   console.log('');
   console.log(`  Issues Found: ${totalIssues}`);
-  console.log(`  ├─ Critical: ${color(String(counts.critical), ANSI.red)}`);
-  console.log(`  ├─ Serious: ${color(String(counts.serious), ANSI.yellow)}`);
-  console.log(`  ├─ Moderate: ${color(String(counts.moderate), ANSI.yellow)}`);
-  console.log(`  └─ Minor: ${color(String(counts.minor), ANSI.gray)}`);
+
+  if (violations.length > 0) {
+    console.log(`  ├─ Critical: ${color(String(counts.critical), ANSI.red)}`);
+    console.log(`  ├─ Serious: ${color(String(counts.serious), ANSI.yellow)}`);
+    console.log(`  ├─ Moderate: ${color(String(counts.moderate), ANSI.yellow)}`);
+    console.log(`  └─ Minor: ${color(String(counts.minor), ANSI.gray)}`);
+  }
+
   console.log('');
 
   if (top.length > 0) {
@@ -285,7 +312,7 @@ function printPrettyReport(targetUrl, payload) {
       console.log(`  ${i + 1}. [${issue.severity}] ${issue.title} (${issue.count} instance${issue.count === 1 ? '' : 's'})`);
     }
   } else {
-    console.log('  Top Issues: none');
+    console.log(`  See full report for issue details.`);
   }
 
   console.log('');

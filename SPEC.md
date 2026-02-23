@@ -27,10 +27,11 @@ npx accessiguard scan https://example.com --ci
 - Node.js 18+ required (for native fetch)
 - Shebang: `#!/usr/bin/env node`
 
-## API Integration
-POST `https://accessiguard.app/api/scan`
+## API Integration (v2)
+POST `https://www.accessiguard.app/api/scan`
 Body: `{ "url": "<target_url>" }`
-Response: JSON with scan results including score, violations, categories, etc.
+Response: `{ "scanId": "<uuid>", "score": 0-100, "issueCount": N }`
+Full report: `https://www.accessiguard.app/scan/<scanId>`
 
 ## Terminal Output Format
 ```

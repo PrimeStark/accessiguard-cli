@@ -2,7 +2,7 @@
 
 Scan any website for accessibility issues from your terminal.
 
-Powered by [AccessiGuard](https://accessiguard.app).
+Powered by [AccessiGuard](https://www.accessiguard.app) — WCAG 2.1 compliance checker.
 
 ## Quick start
 
@@ -34,7 +34,31 @@ accessiguard scan https://example.com
 
 ## CI/CD (GitHub Actions)
 
-Use `--ci` for minimal logs and deterministic exit codes.
+### Option A — Use as a GitHub Action (recommended)
+
+```yaml
+name: accessibility-scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  accessiguard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run accessibility scan
+        uses: PrimeStark/accessiguard-cli@main
+        with:
+          url: https://example.com
+          threshold: '75'
+```
+
+The Action outputs `score`, `passed`, and `report_url` for use in downstream steps.
+
+### Option B — Use npx directly
 
 ```yaml
 name: accessibility-scan
@@ -51,7 +75,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '18'
       - name: Run accessibility scan
         run: npx accessiguard scan https://example.com --ci --threshold 75
 ```
@@ -75,16 +99,20 @@ Behavior in CI:
 Default mode prints a formatted report with:
 - Colorized score status
 - Visual score progress bar
-- Issue counts by severity
-- Top issues summary
-- Link to full report
+- Issue count summary
+- Top issues (when detail is available)
+- Link to full report on accessiguard.app
 
-## API
+## API (v2)
 
 `accessiguard` posts scan requests to:
 
-- `https://accessiguard.app/api/scan`
-- JSON body: `{ "url": "<target_url>" }`
+- `https://www.accessiguard.app/api/scan`
+- Method: `POST`
+- Body: `{ "url": "<target_url>" }`
+- Response: `{ "scanId": "...", "score": 0-100, "issueCount": N }`
+
+The full report is available at `https://www.accessiguard.app/scan/<scanId>`.
 
 ## Requirements
 
