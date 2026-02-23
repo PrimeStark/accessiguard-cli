@@ -1,0 +1,64 @@
+name: 'AccessiGuard Accessibility Scan'
+description: 'Scan a website for WCAG accessibility issues using the AccessiGuard v2 API'
+author: 'Zdenek Spacek'
+
+branding:
+  icon: 'eye'
+  color: 'blue'
+
+inputs:
+  url:
+    description: 'URL to scan for accessibility issues'
+    required: true
+  threshold:
+    description: 'Minimum accessibility score to pass (0–100). Defaults to 70 in CI mode.'
+    required: false
+    default: '70'
+  json:
+    description: 'Output raw JSON response instead of formatted report'
+    required: false
+    default: 'false'
+
+outputs:
+  score:
+    description: 'Accessibility score (0–100)'
+  passed:
+    description: '"true" if score >= threshold, "false" otherwise'
+  report_url:
+    description: 'URL to the full AccessiGuard report'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Run AccessiGuard scan
+      id: scan
+      shell: bash
+      run: |
+        set +e
+        if [ "${{ inputs.json }}" = "true" ]; then
+          OUTPUT=$(npx --yes accessiguard@latest scan "${{ inputs.url }}" --json)
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          SCORE=$(echo "$OUTPUT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).score||0)}catch{console.log(0)}})")
+        else
+          OUTPUT=$(npx --yes accessiguard@latest scan "${{ inputs.url }}" --ci --threshold "${{ inputs.threshold }}")
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          SCORE=$(echo "$OUTPUT" | grep -oP 'score=\K[0-9]+' || echo "0")
+        fi
+
+        PASSED="false"
+        if [ "$EXIT_CODE" = "0" ]; then
+          PASSED="true"
+        fi
+
+        echo "score=$SCORE" >> $GITHUB_OUTPUT
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "report_url=https://www.accessiguard.app/scan?url=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "${{ inputs.url }}")" >> $GITHUB_OUTPUT
+
+        exit $EXIT_CODE
